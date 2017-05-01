@@ -1,0 +1,15 @@
+<use   name="root"/>
+<use   name="roottmva"/>
+<use   name="roofit"/>
+<use   root=""/>
+<use   name="PandaTree/Objects"/>
+<use   name="PandaCore/Tools"/>
+<use   name="CondFormats/BTauObjects"/>
+<use   name="CondTools/BTau"/>
+<use   name="CondFormats/JetMETObjects"/>
+<use   name="fastjet"/>
+<use   name="fastjet-contrib"/>
+<export>
+  <lib   name="1"/>
+</export>
+<flags CXXFLAGS="-g -Wno-sign-compare -Wno-unused-variable -Wno-unused-but-set-variable  -Os"/>
