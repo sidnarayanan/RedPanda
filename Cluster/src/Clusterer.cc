@@ -58,6 +58,8 @@ void redpanda::Clusterer::Init(TTree *t, TH1D *hweights)
   readlist.setVerbosity(DEBUG);
 
   readlist += {jetname+"CA15Jets", "subjets", jetname+"CA15Subjets","Subjets"};
+
+  readlist.push_back("ca15GenJets");
   
   readlist.push_back("pfCandidates");
 
@@ -159,6 +161,15 @@ void redpanda::Clusterer::Run() {
 
     std::vector<panda::GenParticle*> hadrons; 
     for (auto &part : inEvent.genParticles) {
+      if (!part.finalState)
+        continue;
+      unsigned apdgid = abs(part.pdgid);
+      if (apdgid == 12 ||
+          apdgid == 14 ||
+          apdgid == 16)
+        continue;
+
+      /*
       auto &parent = part.parent;
       if (parent.isValid()) {
         // do this instead of remove-erase, since there should only be one instance 
@@ -167,8 +178,9 @@ void redpanda::Clusterer::Run() {
           hadrons.erase(found);
         }
       }
+      */
 
-      if (part.pt()>0) {
+      if (part.pt()>0 && fabs(part.eta())<4.5) {
         hadrons.push_back(&part);
       }
     }
@@ -177,7 +189,7 @@ void redpanda::Clusterer::Run() {
 
 
     std::map<fastjet::PseudoJet*, panda::GenParticle*> assoc; 
-    VPseudoJet particles = ConvertGenParticles(hadrons,assoc,0);
+    VPseudoJet particles = ConvertGenParticles(hadrons,assoc,0.001);
     fastjet::ClusterSequenceArea seq(particles,*jetDef,*areaDef);
     VPseudoJet allJets(fastjet::sorted_by_pt(seq.inclusive_jets(0.)));
     for (auto &jet : allJets) {
