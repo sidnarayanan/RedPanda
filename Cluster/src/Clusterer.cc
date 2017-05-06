@@ -169,6 +169,20 @@ void redpanda::Clusterer::Run() {
           apdgid == 16)
         continue;
 
+      float pt = part.pt();
+      float eta = part.eta();
+      float phi = part.phi();
+      bool matched = false;
+      for (auto *stored : hadrons) {
+        if (DeltaR2(eta,phi,stored->eta(),stored->phi()) < 0.0001 && 
+            fabs(pt-stored->pt()) < 0.01*pt ) {
+          matched = true;
+          break;
+        }
+      }
+      if (matched)
+        continue;
+
       /*
       auto &parent = part.parent;
       if (parent.isValid()) {
@@ -180,7 +194,7 @@ void redpanda::Clusterer::Run() {
       }
       */
 
-      if (part.pt()>0 && fabs(part.eta())<4.5) {
+      if (pt>0 && fabs(part.eta())<4.5) {
         hadrons.push_back(&part);
       }
     }
@@ -189,8 +203,8 @@ void redpanda::Clusterer::Run() {
 
 
     std::map<fastjet::PseudoJet*, panda::GenParticle*> assoc; 
-    VPseudoJet particles = ConvertGenParticles(hadrons,assoc,0.001);
-    fastjet::ClusterSequenceArea seq(particles,*jetDef,*areaDef);
+    VPseudoJet particles = ConvertGenParticles(hadrons,assoc,0.01);
+    fastjet::ClusterSequence seq(particles,*jetDef);
     VPseudoJet allJets(fastjet::sorted_by_pt(seq.inclusive_jets(0.)));
     for (auto &jet : allJets) {
       if (jet.perp() < 150)
@@ -198,7 +212,7 @@ void redpanda::Clusterer::Run() {
       auto &tjet = outEvent.truthJets.create_back();
       tjet.setPtEtaPhiM(jet.perp(),jet.eta(),jet.phi(),jet.m());
 
-      for (auto &c : jet.constituents()) {
+      for (auto &c : fastjet::sorted_by_pt(jet.constituents())) {
         tjet.constituents.addRef(assoc[&c]);
       }
     }
