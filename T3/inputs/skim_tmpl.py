@@ -177,8 +177,22 @@ def drop_branches(to_drop=None, to_keep=None):
         return 2
 
 
-def stageout(outdir,outfilename):
-    mvargs = 'mv $PWD/output.root %s/%s'%(outdir,outfilename)
+def stageout(infilename,outdir,outfilename):
+    if path.isdir(outdir): # assume it's a local copy
+        mvargs = 'mv $PWD/%s %s/%s'%(infilename,outdir,outfilename)
+        lsargs = 'ls %s/%s'%(outdir,outfilename)
+    else:
+        if system('which gfal-copy')==0:
+            mvargs = 'gfal-copy '
+            lsargs = 'gfal-ls '
+        elif system('which lcg-cp')==0:
+            mvargs = 'lcg-cp -v -D srmv2 -b '
+            lsargs = 'lcg-ls -v -D srmv2 -b '
+        else:
+            PError(sname+'.stageout','Could not find a stageout protocol!')
+            return -1
+        mvargs += 'file://$PWD/%s srm://t3serv006.mit.edu:8443/srm/v2/server?SFN=%s/%s'%(infilename,outdir,outfilename)
+        lsargs += 'srm://t3serv006.mit.edu:8443/srm/v2/server?SFN=%s/%s'%(outdir,outfilename)
     PInfo(sname,mvargs)
     ret = system(mvargs)
     system('rm *.root')
@@ -187,17 +201,22 @@ def stageout(outdir,outfilename):
     else:
         PError(sname+'.stageout','Move exited with code %i'%ret)
         return ret
-    if not path.isfile('%s/%s'%(outdir,outfilename)):
+    PInfo(sname,lsargs)
+    ret = system(lsargs)
+    if ret: 
         PError(sname+'.stageout','Output file is missing!')
-        ret = 1
-    return ret
+        return ret
+    return 0
 
 
 def write_lock(outdir,outfilename,processed):
-    flock = open(outdir+'/locks/'+outfilename.replace('.root','.lock'),'w')
+    lockname = outfilename.replace('.root','.lock')
+    flock = open(lockname,'w')
     for k,v in processed.iteritems():
         flock.write(v+'\n')
+    PInfo(sname+'.write_lock','This job successfully processed %i inputs!'%len(processed))
     flock.close()
+    return stageout(lockname,outdir+'/locks/',lockname)
 
 
 if __name__ == "__main__":
@@ -233,7 +252,7 @@ if __name__ == "__main__":
     hadd(list(processed))
     print_time('hadd')
 
-    ret = stageout(outdir,outfilename)
+    ret = stageout('output.root',outdir,outfilename)
     print_time('stageout')
     if not ret:
         write_lock(outdir,outfilename,processed)
