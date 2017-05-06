@@ -10,7 +10,9 @@ clean:
 	rm -f */src/dict*.cc */src/dict*pcm
 
 Cluster/src/dictCluster.cc: $(wildcard $(PACKAGE)/Cluster/interface/*.h) $(PACKAGE)/Cluster/LinkDef.h
-	rootcling -f $(PACKAGE)/Cluster/src/dictCluster.cc $(CMSSW_BASE)/src/RedPanda/Cluster/interface/*.h $(INC) $(CMSSW_BASE)/src/RedPanda/Cluster/LinkDef.h
+	for f in Cluster/interface/*h; do HEADERS="RedPanda/$$f $$HEADERS"; done; \
+	echo $$HEADERS; \
+	rootcling -f $(PACKAGE)/Cluster/src/dictCluster.cc $$HEADERS $(INC) RedPanda/Cluster/LinkDef.h
 	mkdir -p $(CMSSW_BASE)/lib/$(SCRAM_ARCH)/
 	cp Cluster/src/dictCluster_rdict.pcm $(CMSSW_BASE)/lib/$(SCRAM_ARCH)/
 
