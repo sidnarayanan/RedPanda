@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from os import getenv,path
+from os import getenv,path,popen
 from PandaCore.Tools.job_management import *
 import subprocess
 import sys
@@ -18,16 +18,21 @@ parser.add_argument('--outfile',type=str,default=None)
 parser.add_argument('--outdir',type=str,default=outdir)
 parser.add_argument('--force',action='store_true')
 parser.add_argument('--nfiles',type=int,default=-1)
+parser.add_argument('--width',type=int,default=None)
 args = parser.parse_args()
 outdir = args.outdir
 
 if not args.infile:
-  args.infile = workdir+'/local_all.cfg'
+    args.infile = workdir+'/local_all.cfg'
 if not args.outfile:
-  args.outfile = workdir+'/local.cfg'
+    args.outfile = workdir+'/local.cfg'
 
-WIDTH=50
-header = '%-48s'%('Sample')
+if not args.width:
+    columns = int(popen('stty size', 'r').read().split()[-1])
+    WIDTH = (columns-80)/2
+else:
+    WIDTH = args.width
+header = ('%%-%is'%(WIDTH))%('Sample')
 header += ('%%-%is'%(WIDTH+2))%('Progress')
 header += ' %10s %10s %10s %10s %10s'%('Total','Running','Idle','Missing','Done')
 
@@ -37,6 +42,9 @@ colors = {
     'grey' : 47, 
     'red' : 41,
     }
+
+#if getenv('SUBMIT_CONFIG'):
+#  setup_schedd(getenv('SUBMIT_CONFIG'))
 
 class Output:
   def __init__(self,name):
@@ -59,11 +67,11 @@ class Output:
   def __str__(self):
     if self.total==0:
       return ''
-    s = '%-40s'%self.name[:40]
+    s = ('%%-%is '%(WIDTH-1))%self.name[:(WIDTH-1)]
     d_frac = 1.*WIDTH*self.done/self.total
     r_frac = 1.*WIDTH*(self.done+self.running)/self.total
     i_frac = 1.*WIDTH*(self.idle+self.done+self.running)/self.total
-    s += '\t[\033[0;%im'%colors['green']
+    s += '[\033[0;%im'%colors['green']
     state = 0
     for i in xrange(WIDTH):
         if i>=d_frac:
@@ -85,25 +93,31 @@ class Output:
 
 # determine what files have been processed and logged as such
 processedfiles = []
+print 'Finding locks...                      \r',
 locks = glob(outdir+'/locks/*lock')
+nl = len(locks)
+il = 1
 for lock in locks:
+    print 'Reading lock %i/%i                   \r'%(il,nl),
+    il += 1
     flock = open(lock)
     for l in flock:
         processedfiles.append(l.strip())
 
+print 'Checking jobs...                 \r',
 
 # determine what samples from previous resubmissions are still running
 running_samples = []
 idle_samples = []
 if path.isfile(workdir+'/submission.pkl'): 
-  with open(workdir+'/submission.pkl','rb') as fpkl:
-    submissions = pickle.load(fpkl)
+    with open(workdir+'/submission.pkl','rb') as fpkl:
+      submissions = pickle.load(fpkl)
 else:
-  submissions = []
+    submissions = []
 for s in submissions:
-  results = s.query_status()
-  running_samples += results['running']
-  idle_samples += results['idle']
+    results = s.query_status()
+    running_samples += results['running']
+    idle_samples += results['idle']
 
 running_files = list(chain.from_iterable([x.files for x in running_samples]))
 idle_files = list(chain.from_iterable([x.files for x in idle_samples]))
@@ -114,6 +128,7 @@ outputs = {}
 data = Output('Data')
 mc = Output('MC')
 
+print 'Rebuilding configuration...            \r',
 
 all_samples = read_sample_config(args.infile)
 filtered_samples = {}
@@ -143,10 +158,6 @@ for name in sorted(all_samples):
             state = 'idle'
 
         if state=='missing' or (args.force and state!='done'):
-            if '06A8FEEE-78D0-E611-A23E-0CC47A78A426' in f:
-                print f,' is missing'
-            # if '750' in f:
-            #     print '|%s|'%f
             out_sample.add_file(f)
             merged_sample.add_file(f)
 
@@ -180,9 +191,12 @@ else:
             outfile.write(c%(counter,counter))
             counter += 1
 
+print '\r',
+print 'Summary:                     '
+
 print header
 for n in sorted(outputs):
-  print str(outputs[n])
+    print str(outputs[n])
 print
 print str(data)
 print str(mc)
