@@ -11,7 +11,7 @@ using namespace std;
 Camera::Camera(int debug_/*=0*/) {
   DEBUG = debug_;
 
-  it = new ImageTree(20);
+  it = new ImageTree(40);
 
   if (DEBUG) PDebug("Camera::Camera","Calling constructor");
 }
@@ -121,24 +121,50 @@ void Camera::Run() {
 
     tr.TriggerEvent("read branches");
 
+    TH1D hEta("hEta","",100,0,3);
+    TH1D hPhi("hPhi","",100,0,3.2);
+    double quantiles[1] = {0.95};
+    double qEta[1]; 
+    double qPhi[1];
+
     for (auto& j : event.truthJets) {
       it->Reset();
+      hEta.Reset(); hPhi.Reset();
 
       double eta = j.eta();
       double phi = j.phi();
-      double WIDTH = 2; // consider up to +/- 2 in eta,phi plane
-
 
       for (auto cref : j.constituents) {
         auto *c = cref.get();
         double ceta = c->eta();
         double cphi = c->phi();
 
-        ceta = (ceta - eta) / WIDTH;
-        cphi = (cphi - phi) / WIDTH;
+        hEta.Fill(fabs(ceta - eta), c->pt());
+        hPhi.Fill(fabs(SignedDeltaPhi(cphi,phi)), c->pt());
+      }
+      
+      hEta.ComputeIntegral();
+      hPhi.ComputeIntegral();
+
+      hEta.GetQuantiles(1,qEta,quantiles);
+      hPhi.GetQuantiles(1,qPhi,quantiles);
+
+      if (DEBUG) PDebug("Camera::Run",TString::Format("jet dimensions are deta=%.3f, dphi=%.3f",qEta[0], qPhi[0]));
+
+      double maxpt = 0;
+      for (auto cref : j.constituents) {
+        auto *c = cref.get();
+        double ceta = c->eta();
+        double cphi = c->phi();
+
+        ceta = (ceta - eta) / qEta[0];
+        cphi = SignedDeltaPhi(cphi,phi) / qPhi[0];
 
         it->genImage->Fill(ceta,cphi,c->pt());
+        maxpt = max(maxpt, double(c->pt()));
       }
+
+      if (DEBUG) PDebug("Camera::Run",TString::Format("jet pT=%.3f, sum pT=%.3f, max pT=%.3f",j.pt(),it->genImage->Integral(),maxpt));
 
       tr.TriggerSubEvent("truth jet");
 
