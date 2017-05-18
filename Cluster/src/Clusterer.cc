@@ -156,11 +156,16 @@ void redpanda::Clusterer::Run() {
     outEvent.recoSubjets = inEvent.puppiCA15Subjets;
     outEvent.genJets = inEvent.ca15GenJets;
 
+    outEvent.eventNumber = inEvent.eventNumber;
+    outEvent.lumiNumber = inEvent.lumiNumber;
+    outEvent.runNumber = inEvent.runNumber;
+    outEvent.weight = inEvent.weight;
+
     tr.TriggerEvent("copy branches");
 
 
     std::vector<panda::GenParticle*> hadrons; 
-    for (auto &part : inEvent.genParticles) {
+    for (auto &part : outEvent.genParticles) {
       if (!part.finalState)
         continue;
       unsigned apdgid = abs(part.pdgid);
@@ -194,7 +199,7 @@ void redpanda::Clusterer::Run() {
       }
       */
 
-      if (pt>0 && fabs(part.eta())<4.5) {
+      if (pt>0 && fabs(part.eta())<4.7) {
         hadrons.push_back(&part);
       }
     }
@@ -202,8 +207,7 @@ void redpanda::Clusterer::Run() {
     tr.TriggerEvent("find hadrons");
 
 
-    std::map<fastjet::PseudoJet*, panda::GenParticle*> assoc; 
-    VPseudoJet particles = ConvertGenParticles(hadrons,assoc,0.01);
+    VPseudoJet particles = ConvertGenParticles(hadrons,0.01);
     fastjet::ClusterSequence seq(particles,*jetDef);
     VPseudoJet allJets(fastjet::sorted_by_pt(seq.inclusive_jets(0.)));
     for (auto &jet : allJets) {
@@ -213,7 +217,7 @@ void redpanda::Clusterer::Run() {
       tjet.setPtEtaPhiM(jet.perp(),jet.eta(),jet.phi(),jet.m());
 
       for (auto &c : fastjet::sorted_by_pt(jet.constituents())) {
-        tjet.constituents.addRef(assoc[&c]);
+        tjet.constituents.addRef(hadrons[c.user_index()]);
       }
     }
 

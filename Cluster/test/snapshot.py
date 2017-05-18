@@ -20,21 +20,17 @@ from PandaCore.Tools.Load import *
 
 Load('Clusterer')
 
-skimmer = root.redpanda.Clusterer(debug_level)
+camera = root.redpanda.Camera(debug_level)
 
 
-skimmer.firstEvent=0
-skimmer.lastEvent=10
-skimmer.isData=False
-skimmer.processType = root.redpanda.Clusterer.kTT
+camera.firstEvent=0
+camera.lastEvent=1
 fin = root.TFile.Open(torun)
 
 tree = fin.FindObjectAny("events")
-hweights = fin.FindObjectAny("hSumW")
 
-skimmer.SetDataDir(getenv('CMSSW_BASE')+'/src/PandaAnalysis/data/')
-skimmer.SetOutputFile(output)
-skimmer.Init(tree,hweights)
+camera.SetOutputFile(output)
+camera.Init(tree)
 
-skimmer.Run()
-skimmer.Terminate()
+camera.Run()
+camera.Terminate()

@@ -14,8 +14,8 @@ now = int(time())
 frozen_cfgpath = cfgpath.replace('local','local_%i'%now)
 system('cp %s %s'%(cfgpath,frozen_cfgpath)) 
 
-#if getenv('SUBMIT_CONFIG'):
-#  jm.setup_schedd(getenv('SUBMIT_CONFIG'))
+if getenv('SUBMIT_CONFIG'):
+  jm.setup_schedd(getenv('SUBMIT_CONFIG'))
 
 s = jm.Submission(frozen_cfgpath,workpath+'/submission.pkl')
 s.execute()

@@ -53,15 +53,16 @@ inline VPseudoJet ConvertPFCands(panda::PFCandCollection &incoll, bool puppi, do
 
 inline VPseudoJet 
 ConvertGenParticles(std::vector<panda::GenParticle*> &incoll, 
-                    std::map<fastjet::PseudoJet*, panda::GenParticle*> &assoc,
                     double minPt=0.001) 
 {
   VPseudoJet vpj; vpj.reserve(incoll.size());
-  for (auto *ingen : incoll) {
+  unsigned nG = incoll.size();
+  for (unsigned iG = 0; iG != nG; ++iG) {
+    auto *ingen = incoll.at(iG);
     if (ingen->pt() < minPt) 
       continue;
     vpj.emplace_back(ingen->px(),ingen->py(),ingen->pz(),ingen->e());
-    assoc[&(vpj.back())] = ingen;
+    vpj.back().set_user_index(iG);
   }
   return vpj;
 }

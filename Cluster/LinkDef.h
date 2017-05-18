@@ -1,6 +1,8 @@
 #include "RedPanda/Cluster/interface/AnalyzerUtilities.h"
 #include "RedPanda/Cluster/interface/Clusterer.h"
+#include "RedPanda/Cluster/interface/ImageTree.h"
 #include "RedPanda/Cluster/interface/genericTree.h"
+#include "RedPanda/Cluster/interface/Camera.h"
 
 
 #ifdef __CLING__
@@ -12,5 +14,7 @@
 #pragma link C++ namespace redpanda;
 
 #pragma link C++ class redpanda::Clusterer;
+#pragma link C++ class redpanda::ImageTree;
+#pragma link C++ class redpanda::Camera;
 
 #endif 
