@@ -1,7 +1,7 @@
 import ROOT as root
 import numpy as np
 
-_c = root.TCanvas()
+_c = root.TCanvas('c','',600,600)
 
 def conv(h, dims, dtype=np.float32):
     arr = h.GetArray()
@@ -27,26 +27,37 @@ def img(h, fpath):
         for f in fpath:
             _c.SaveAs(f)
 
-def process_tree(t, fpath, n_to_print=0, do_truth=False):
+def process_tree(t, fpath, n_to_print=0, do_truth=True):
     N = t.GetEntriesFast()
-    imgpath = fpath.replace('.npy','_img%i.png')
+    imgpath = fpath+'_img%i.png'
     gen_arrs = []
+    truth_arrs = []
     dims = None
     for iE in xrange(N):
         t.GetEntry(iE)
         gen = t.gen
+        truth = t.truth
         if n_to_print>0 and iE<n_to_print:
             img(gen, imgpath%iE)
+            img(truth, (imgpath%iE).replace('.png','_truth.png'))
         if not dims:
             dims = (gen.GetNbinsX(), gen.GetNbinsY())
         gen_arrs.append( conv(gen, dims) )
+        truth_arrs.append( conv(truth, dims, dtype=np.int16) )
     gen_arr = np.array(gen_arrs)
-    np.save(fpath, gen_arr)
+    np.save(fpath+'_gen.npy', gen_arr)
+    truth_arr = np.array(truth_arrs)
+    np.save(fpath+'_truth.npy', truth_arr)
+
+def process_file(infile, *args, **kwargs):
+    f = root.TFile(infile)
+    t = f.Get('album')
+    process_tree(t, *args, **kwargs)
 
 
 if __name__=='__main__':
     from sys import argv
     f = root.TFile(argv[1])
     t = f.Get('album')
-    fout = argv[1].replace('.root','.npy')
+    fout = argv[1].replace('.root','')
     process_tree(t, fout, 10)

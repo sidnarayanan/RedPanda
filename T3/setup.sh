@@ -2,10 +2,10 @@
 
 export PATH=${PATH}:${CMSSW_BASE}/src/PandaCore/bin/
 
-export SUBMIT_NAME="v1"
+export SUBMIT_NAME="v2"
 
 export PANDA="${CMSSW_BASE}/src/RedPanda"
-export PANDA_CFG="http://t3serv001.mit.edu/~snarayan/histcatalog/20170501_redpanda.cfg"
+export PANDA_CFG="http://t3serv001.mit.edu/~snarayan/histcatalog/20170520_redpanda.cfg"
 
 export SUBMIT_TMPL="skim_tmpl.py"
 

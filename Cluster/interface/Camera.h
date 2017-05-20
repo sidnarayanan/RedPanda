@@ -13,7 +13,7 @@
 #include <TMath.h>
 #include <TH1D.h>
 #include <TH2F.h>
-#include <TH2C.h>
+#include <TH2S.h>
 #include <TLorentzVector.h>
 
 #include "AnalyzerUtilities.h"
@@ -40,6 +40,8 @@ namespace redpanda {
     bool isData=false;                                                 // to do gen matching, etc
     int firstEvent=-1;
     int lastEvent=-1;                                                    // max events to process; -1=>all
+    double zcut = 0.25; //!< definition of a "hard" parton
+    TH2F *hFilter=NULL; //!< used to downsample the image in absolute eta-phi
 
   private:
     int DEBUG = 0; //!< debug verbosity level

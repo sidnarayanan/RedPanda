@@ -66,7 +66,7 @@ could_not_find = []
 
 for d in sorted(glob(args.catalog+'/*')):
     dirname = d.split('/')[-1]
-    if 'AOD' not in dirname:
+    if 'AOD' not in dirname and 'paus' in args.catalog: # private stuff might look different
         continue
     shortname = dirname.split('+')[0]
     try:

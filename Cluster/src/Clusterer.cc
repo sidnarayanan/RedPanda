@@ -150,16 +150,11 @@ void redpanda::Clusterer::Run() {
 
     tr.TriggerEvent("read branches");
 
-    outEvent.pfCandidates = inEvent.pfCandidates;
-    outEvent.genParticles = inEvent.genParticles;
+    outEvent.copy(inEvent);
+
     outEvent.recoJets = inEvent.puppiCA15Jets;
     outEvent.recoSubjets = inEvent.puppiCA15Subjets;
     outEvent.genJets = inEvent.ca15GenJets;
-
-    outEvent.eventNumber = inEvent.eventNumber;
-    outEvent.lumiNumber = inEvent.lumiNumber;
-    outEvent.runNumber = inEvent.runNumber;
-    outEvent.weight = inEvent.weight;
 
     tr.TriggerEvent("copy branches");
 

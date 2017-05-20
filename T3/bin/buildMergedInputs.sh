@@ -23,7 +23,11 @@ while getopts ":tn:" opt; do
 done
 
 PInfo -n "$0" "Acquiring configuration..."
-wget -O ${WD}/list.cfg $PANDA_CFG
+if [[ $(echo $PANDA_CFG | grep "mit.edu") ]]; then
+  wget -O ${WD}/list.cfg $PANDA_CFG
+else
+  cp $PANDA_CFG ${WD}/list.cfg
+fi
 ${CMSSW_BASE}/src/RedPanda/T3/bin/buildConfig.py --infile ${WD}/list.cfg --outfile ${WD}/local.cfg --nfiles $filesetSize
 cp -v ${WD}/list.cfg ${WD}/list_all.cfg 
 cp -v ${WD}/local.cfg ${WD}/local_all.cfg 
@@ -36,9 +40,7 @@ if [[ $doTar == 1 ]]; then
 fi
 
 PInfo -n "$0" "Creating executable..."
-cd ${CMSSW_BASE}/src/RedPanda/T3/inputs/
-sed "s?XXXX?${SUBMIT_OUTDIR}?g" ${SUBMIT_TMPL} > skim.py
-cp -v skim.py ${WD}
+sed "s?XXXX?${SUBMIT_OUTDIR}?g" ${CMSSW_BASE}/src/RedPanda/T3/inputs/${SUBMIT_TMPL} > ${WD}/skim.py
 chmod 775 ${WD}/skim.py
 
 PInfo -n "$0" "Finalizing work area..."

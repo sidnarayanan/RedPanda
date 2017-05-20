@@ -7,7 +7,7 @@ import json
 
 debug_level = 2
 torun = argv[1]
-output = 'testskim.root'
+output = 'snapshot.root'
 if len(argv)>2:
     debug_level = int(argv[2])
     if len(argv)>3:
@@ -23,8 +23,8 @@ Load('Clusterer')
 camera = root.redpanda.Camera(debug_level)
 
 
-camera.firstEvent=0
-camera.lastEvent=10
+camera.firstEvent=1
+camera.lastEvent=20
 fin = root.TFile.Open(torun)
 
 tree = fin.FindObjectAny("events")

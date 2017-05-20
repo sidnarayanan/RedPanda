@@ -24,7 +24,7 @@ skimmer = root.redpanda.Clusterer(debug_level)
 
 
 skimmer.firstEvent=0
-skimmer.lastEvent=10
+skimmer.lastEvent=20
 skimmer.isData=False
 skimmer.processType = root.redpanda.Clusterer.kTT
 fin = root.TFile.Open(torun)

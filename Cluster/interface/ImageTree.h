@@ -5,7 +5,7 @@
 #include "TTree.h"
 #include "TH1F.h"
 #include "TH2F.h"
-#include "TH2C.h"
+#include "TH2S.h"
 #include "TString.h"
 #include "genericTree.h"
 
@@ -25,7 +25,7 @@ namespace redpanda {
 
     //STARTCUSTOMDEF
           TH2F *genImage{0};
-          TH2C *truthImage{0};
+          TH2S *truthImage{0};
     //ENDCUSTOMDEF
     };
 }
