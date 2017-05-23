@@ -27,6 +27,16 @@ namespace redpanda {
           TH2F *genImage{0};
           TH2S *truthImage{0};
     //ENDCUSTOMDEF
+    int runNumber = -1;
+    int lumiNumber = -1;
+    ULong64_t eventNumber = -1;
+    int npv = -1;
+    int pu = -1;
+    float mcWeight = -1;
+    float mass = -1;
+    float pt = -1;
+    int matched = -1;
+    float gensize = -1;
     };
 }
 

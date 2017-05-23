@@ -1,5 +1,6 @@
 import ROOT as root
 import numpy as np
+from PandaCore.Tools.Misc import PInfo
 
 _c = root.TCanvas('c','',600,600)
 
@@ -14,7 +15,9 @@ def conv(h, dims, dtype=np.float32):
         narr = narr[1:-1, 1:-1]
     elif len(dims)==3:
         narr = narr[1:-1, 1:-1, 1:-1]
-    return conv
+    narr_copy = np.empty_like(narr) # otherwise the buffer gets overwritten on subsequent GetEntry
+    np.copyto(narr_copy, narr)
+    return narr_copy
 
 def img(h, fpath):
     _c.Clear()
@@ -33,7 +36,11 @@ def process_tree(t, fpath, n_to_print=0, do_truth=True):
     gen_arrs = []
     truth_arrs = []
     dims = None
+    threshold = 0
     for iE in xrange(N):
+        if float(iE)/N > threshold:
+            PInfo('convert_images.process_tree','%5.2f (%i/%i)'%(float(iE)/N,iE,N))
+            threshold += 0.1
         t.GetEntry(iE)
         gen = t.gen
         truth = t.truth

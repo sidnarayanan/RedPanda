@@ -24,7 +24,7 @@ camera = root.redpanda.Camera(debug_level)
 
 
 camera.firstEvent=1
-camera.lastEvent=20
+camera.lastEvent=2
 fin = root.TFile.Open(torun)
 
 tree = fin.FindObjectAny("events")

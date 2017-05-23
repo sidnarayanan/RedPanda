@@ -24,7 +24,7 @@ def print_time(label):
     global stopwatch
     now_ = clock()
     PDebug(sname+'.print_time:'+str(time()),
-           '%.3f s elapsed performing "%s"'%((now_-stopwatch)/1000.,label))
+           '%.3f s elapsed performing "%s"'%((now_-stopwatch),label))
     stopwatch = now_
 
 def copy_local(long_name):
@@ -59,7 +59,7 @@ def copy_local(long_name):
     '''
 
     # rely on pxrdcp for local and remote copies
-    cmd = "pxrdcp %s %s"%(full_path,input_name)
+    cmd = "pxrdcp %s %s '!pfCandidates'"%(full_path,input_name)
     PInfo(sname+'.copy_local',cmd)
 
     system(cmd)

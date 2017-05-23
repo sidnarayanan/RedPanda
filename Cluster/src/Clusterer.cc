@@ -21,6 +21,8 @@ redpanda::Clusterer::Clusterer(int debug_/*=0*/) {
   jetDef = new fastjet::JetDefinition(fastjet::cambridge_algorithm,radius);
   softDrop = new fastjet::contrib::SoftDrop(sdBeta,sdZcut,radius);
 
+  flags["reco"] = false;
+
   if (DEBUG) PDebug("Clusterer::Clusterer","Calling constructor");
 }
 
@@ -57,12 +59,13 @@ void redpanda::Clusterer::Init(TTree *t, TH1D *hweights)
                                      "isData", "npv", "npvTrue", "weight", "metFilters",});
   readlist.setVerbosity(DEBUG);
 
-  readlist += {jetname+"CA15Jets", "subjets", jetname+"CA15Subjets","Subjets"};
+  if (flags["reco"]) {
+    readlist += {jetname+"CA15Jets", "subjets", jetname+"CA15Subjets","Subjets"};
+    readlist.push_back("pfCandidates");
+  }
 
   readlist.push_back("ca15GenJets");
-  
-  readlist.push_back("pfCandidates");
-
+    
   readlist.push_back("genParticles");
   readlist.push_back("genReweight");
   

@@ -10,7 +10,7 @@ from sys import argv
 import argparse
 
 parser = argparse.ArgumentParser(description='make config file')
-parser.add_argument('--catalog',type=str,default='/home/cmsprod/catalog/t2mit/pandaf/002')
+parser.add_argument('--catalog',type=str,default='/home/cmsprod/catalog/t2mit/pandaf/003')
 parser.add_argument('--outfile',type=str)
 parser.add_argument('--include',nargs='+',type=str,default=None)
 parser.add_argument('--exclude',nargs='+',type=str,default=None)

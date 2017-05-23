@@ -116,18 +116,24 @@ void Camera::Run() {
 
   TH1D hEta("hEta","",100,0,3);
   TH1D hPhi("hPhi","",100,0,3.2);
-  double quantiles[1] = {0.95};
+  double quantiles[1] = {0.9};
   double qEta[1]; 
   double qPhi[1];
   TH2F *hMaxPt = (TH2F*) it->genImage->Clone();
 
   // what we consider valid hard partons:
   // include all hadronizable quarks, plus gluons
-  // include taus (hadronic) as well as e,mu, since these can be clustered themselves
-  // also include photons
-  const std::unordered_set<unsigned> partonIDs = {1, 2, 3, 4, 5, 21, 11, 13, 15, 22};
+  // include taus (hadronic) 
+  // const std::unordered_set<unsigned> partonIDs = {1, 2, 3, 4, 5, 21, 11, 13, 15, 22};
+  const std::unordered_set<unsigned> partonIDs = {1, 2, 3, 4, 5, 21, 15};
   auto validPID = [partonIDs](int id) -> bool {
     return (partonIDs.find(abs(id)) != partonIDs.end());
+  };
+  // resonances we want to ignore (e.g. u u~ > Z > d d~ should have the us ignored)
+  const std::unordered_set<unsigned> resonanceIDs = {6, 23, 24}; 
+  auto isResonance = [resonanceIDs](int id) -> bool {
+    return ( (abs(id) > 10000) || // e.g. Z'
+             (resonanceIDs.find(abs(id)) != resonanceIDs.end()) );
   };
 
 
@@ -179,7 +185,7 @@ void Camera::Run() {
       for (auto& child : event.genParticles) {
         if (!child.parent.isValid() || child.parent.get() != &gen) 
           continue; // only consider particles that come from gen
-        if (validPID(child.pdgid))
+        if (validPID(child.pdgid) || isResonance(child.pdgid))
           children.push_back(&child);
       }
 
@@ -193,23 +199,38 @@ void Camera::Run() {
       }
 
       // drop 1->N if 2 of the N pass the zcut
-      // also drop 1->1 always
-      if ((children.size() == 1 && nPass == 1) || nPass == 2)
+      // also drop 1->1 always <- don't do this
+      // if ((children.size() == 1 && nPass == 1) || nPass >= 2) {
+      if (nPass >= 2) {
+        if (DEBUG>3) PDebug("Camera::Run Rejecting partons",
+            TString::Format("pT=%7.3f, pdgid=%i; %lu %u",gen.pt(),gen.pdgid,children.size(),nPass));
         continue;
+      }
 
       // remove if a parent of this parton is already a good parton
       // this avoids saving t0 and t3 in t0->t1->t2->t3
       bool foundParent = false;
+      bool foundResonance = false; // had to go through a resonance to hit a valid parent
       const panda::GenParticle *iter = &gen;
       while (iter->parent.isValid()) {
         iter = iter->parent.get();
+        if (!foundResonance)
+          foundResonance = isResonance(iter->pdgid);
         if (partonCandidates.find(iter) != partonCandidates.end()) {
           foundParent = true;
           break;
         }
       }
-      if (foundParent)
+      if (foundParent && !foundResonance) {
+        if (DEBUG>3) PDebug("Camera::Run Rejecting partons",
+            TString::Format("pT=%7.3f, pdgid=%i; found parent pT=%7.3f, pdgid=%i",gen.pt(),gen.pdgid,iter->pt(),iter->pdgid));
         continue;
+      }
+      // here's a question:
+      // do we need to reject the precursor to a resonance?
+      // it's wrong to call it a hard parton, but would we ever
+      // accidentally associate it with a hadron? I think no.
+      // current solution is to keep it in the collection
 
       partonCandidates.insert(&gen);
       if (DEBUG>2) PDebug("Camera::Run Finding partons",
@@ -221,10 +242,18 @@ void Camera::Run() {
       hEta.Reset(); hPhi.Reset();
       hMaxPt->Reset();
 
+      it->eventNumber = event.eventNumber;
+      it->runNumber = event.runNumber;
+      it->lumiNumber = event.lumiNumber;
+      it->mcWeight = event.weight;
+
       double eta = j.eta();
       double phi = j.phi();
       double jpt = j.pt();
       double je = j.e();
+
+      it->mass = j.m();
+      it->pt = jpt;
 
       // get the absolute dimensions of the jet
       for (auto cref : j.constituents) {
@@ -245,7 +274,8 @@ void Camera::Run() {
 
       double maxpt = 0;
       std::map<const panda::GenParticle*, char> partons; // what we consider "hard"
-      partons[0] = 0; // unassociated or underlying event
+      std::map<const panda::GenParticle*, float> partonsSumPt;
+      partons[0] = 1; // unassociated or underlying event
       for (auto cref : j.constituents) {
         auto *c = cref.get();
         double ceta = c->eta();
@@ -270,7 +300,7 @@ void Camera::Run() {
         }
 
         
-        char idx = 0;
+        char idx = 1; // default "parton"
         const panda::GenParticle *parton = parent.get();
         if (DEBUG>2) PDebug("Camera::Run Parton history",
             TString::Format("for hadron E=%7.3f, id=%5i, found a parton E=%7.3f, id=%5i",
@@ -282,16 +312,17 @@ void Camera::Run() {
           // we found an actual parent
           auto found = partons.find(parton);
           if (found == partons.end()) {
-            idx = partons.size();
+            idx = partons.size()+1;
             partons[parton] = idx;
+            partonsSumPt[parton] = 0;
           } else {
             idx = found->second;
           }
         }
         
         double cpt = c->pt();
+        partonsSumPt[parton] += cpt;
         if (cpt > hMaxPt->GetBinContent(hMaxPt->FindBin(ceta,cphi))) {
-          printf("filling %.3f,%.3f with %u, int=%f\n",ceta,cphi,idx,it->truthImage->Integral());
           it->truthImage->SetBinContent(it->truthImage->FindBin(ceta,cphi),idx);
 //          it->truthImage->ComputeIntegral();
           hMaxPt->SetBinContent(hMaxPt->FindBin(ceta,cphi),cpt);
@@ -305,7 +336,17 @@ void Camera::Run() {
           TString::Format("jet pT=%.3f, sum pT=%.3f, max pT=%.3f",j.pt(),it->genImage->Integral(),maxpt));
       if (DEBUG) PDebug("Camera::Run",
           TString::Format("jet has %lu partons with z>%.3f",partons.size(),zcut));
-      printf("%f\n",it->truthImage->Integral());
+      if (DEBUG) {
+        for (auto& iter : partons) {
+          if (!iter.first)
+            continue;
+          PDebug("Camera::Run",
+              TString::Format(" parton pdgid=%i, pT=%.3f, sum pT=%.3f",
+                              iter.first->pdgid,
+                              iter.first->pt(),
+                              partonsSumPt[iter.first]));
+        }
+      }
 
       tr.TriggerSubEvent("truth jet");
 
