@@ -12,7 +12,7 @@ using namespace std;
 Camera::Camera(int debug_/*=0*/) {
   DEBUG = debug_;
 
-  it = new ImageTree(40);
+  it = new ImageTree(20);
 
   if (DEBUG) PDebug("Camera::Camera","Calling constructor");
 }

@@ -29,7 +29,7 @@ def print_time(label):
 
 def copy_local(long_name):
     full_path = long_name
-    PInfo(sname,full_path)
+    PInfo(sname+'.copy_local',full_path)
 
     panda_id = long_name.split('/')[-1].split('_')[-1].replace('.root','')
     input_name = 'input_%s.root'%panda_id
@@ -116,14 +116,14 @@ def stageout(infilename,outdir,outfilename):
             return -1
         mvargs += 'file://$PWD/%s srm://t3serv006.mit.edu:8443/srm/v2/server?SFN=%s/%s'%(infilename,outdir,outfilename)
         lsargs += 'srm://t3serv006.mit.edu:8443/srm/v2/server?SFN=%s/%s'%(outdir,outfilename)
-    PInfo(sname,mvargs)
+    PInfo(sname+'.stageout',mvargs)
     ret = system(mvargs)
     if not ret:
         PInfo(sname+'.stageout','Move exited with code %i'%ret)
     else:
         PError(sname+'.stageout','Move exited with code %i'%ret)
         return ret
-    PInfo(sname,lsargs)
+    PInfo(sname+'.stageout',lsargs)
     ret = system(lsargs)
     if ret: 
         PError(sname+'.stageout','Output file is missing!')
