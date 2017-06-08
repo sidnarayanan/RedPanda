@@ -15,8 +15,9 @@ import ROOT as root
 from PandaCore.Tools.Misc import *
 from PandaCore.Tools.Load import *
 import PandaCore.Tools.job_management as cb
+import RedPanda.Cluster.convert_arrays as ca
 
-Load('Clusterer')
+Load('PFAnalyzer')
 data_dir = getenv('CMSSW_BASE') + '/src/PandaAnalysis/data/'
 
 stopwatch = clock() 
@@ -76,27 +77,22 @@ def fn(input_name,isData,full_path):
     
     PInfo(sname+'.fn','Starting to process '+input_name)
     # now we instantiate and configure the analyzer
-    analyzer = root.redpanda.Clusterer()
+    analyzer = root.redpanda.PFAnalyzer()
 
     # read the inputs
     try:
         fin = root.TFile.Open(input_name)
         tree = fin.FindObjectAny("events")
-        hweights = fin.FindObjectAny("hSumW")
     except:
         PError(sname+'.fn','Could not read %s'%input_name)
         return False # file open error => xrootd?
     if not tree:
         PError(sname+'.fn','Could not recover tree in %s'%input_name)
         return False
-    if not hweights:
-        PError(sname+'.fn','Could not recover hweights in %s'%input_name)
-        return False
 
     output_name = input_name.replace('input','output')
-    analyzer.SetDataDir(data_dir)
     analyzer.SetOutputFile(output_name)
-    analyzer.Init(tree,hweights)
+    analyzer.Init(tree)
 
     # run and save output
     analyzer.Run()
@@ -129,51 +125,6 @@ def hadd(good_inputs):
     else:
         PError(sname+'.hadd','Merging exited with code %i'%ret)
 
-
-
-def drop_branches(to_drop=None, to_keep=None):
-    # remove any irrelevant branches from the final tree.
-    # this MUST be the last step before stageout or you 
-    # run the risk of breaking something
-    
-    if not to_drop and not to_keep:
-        return 0
-
-    if to_drop and to_keep:
-        PError(sname+'.drop_branches','Can only provide to_drop OR to_keep')
-        return 0
-
-    f = root.TFile('output.root','UPDATE')
-    t = f.FindObjectAny('events')
-    n_entries = t.GetEntriesFast() # to check the file wasn't corrupted
-    if to_drop:
-        if type(to_drop)==str:
-            t.SetBranchStatus(to_drop,False)
-        else:
-            for b in to_drop:
-                t.SetBranchStatus(b,False)
-    elif to_keep:
-        t.SetBranchStatus('*',False)
-        if type(to_keep)==str:
-            t.SetBranchStatus(to_keep,True)
-        else:
-            for b in to_keep:
-                t.SetBranchStatus(b,True)
-    t_clone = t.CloneTree()
-    f.WriteTObject(t_clone,'events','overwrite')
-    f.Close()
-
-    # check that the write went okay
-    f = root.TFile('output.root')
-    if f.IsZombie():
-        PError(sname+'.drop_branches','Corrupted file trying to drop '+to_drop)
-        return 1 
-    t_clone = f.FindObjectAny('events')
-    if (n_entries==t_clone.GetEntriesFast()):
-        return 0
-    else:
-        PError(sname+'.drop_branches','Corrupted tree trying to drop '+to_drop)
-        return 2
 
 
 def stageout(infilename,outdir,outfilename):
@@ -251,12 +202,19 @@ if __name__ == "__main__":
     hadd(list(processed))
     print_time('hadd')
 
-    ret = stageout('output.root',outdir,outfilename)
+    ca.process_file('output.root')
+    print_time('conversion')
+
+    ret1 = stageout('output.root',outdir,outfilename)
+    ret2 = stageout('output.npy',outdir,outfilename.replace('.root','.npy'))
     print_time('stageout')
-    if not ret:
+
+    system('rm -f *root *npy')
+
+    if not ret1 and not ret2:
         write_lock(outdir,outfilename,processed)
         print_time('create lock')
     else:
-        exit(-1*ret)
+        exit(-1*max(ret1, ret2))
 
     exit(0)

@@ -1,0 +1,31 @@
+#ifndef REDPANDA_CLASSNAME_H
+#define REDPANDA_CLASSNAME_H 
+
+#include "TFile.h"
+#include "TTree.h"
+#include "TH1F.h"
+#include "TH2F.h"
+#include "TH2S.h"
+#include "TString.h"
+#include "genericTree.h"
+
+namespace redpanda {
+    class CLASSNAME : public genericTree {
+            
+        public:
+          CLASSNAME();
+          ~CLASSNAME();
+          void WriteTree(TTree *t);
+          void Fill() { treePtr->Fill(); }
+          void SetBranchStatus(const char *bname, bool status, UInt_t *ret=0) 
+          { 
+            treePtr->SetBranchStatus(bname,status,ret); 
+          }
+          void Reset();
+
+    //STARTCUSTOMDEF
+    //ENDCUSTOMDEF
+    };
+}
+
+#endif
