@@ -51,17 +51,17 @@ def copy_local(long_name):
         if ftest and not(ftest.IsZombie()):
             full_path = local_path
 
-    '''
-    # xrdcp if remote, copy if local - DEPRECATED
+    # xrdcp if remote, copy if local
     if 'root://' in full_path:
-        system('xrdcp %s %s'%(full_path,input_name))
+        cmd = 'xrdcp %s %s'%(full_path,input_name)
     else:
-        system('cp %s %s'%(full_path,input_name))
-    '''
+        cmd = 'cp %s %s'%(full_path,input_name)
 
+    '''
     # rely on pxrdcp for local and remote copies
     cmd = "pxrdcp %s %s"%(full_path,input_name)
     PInfo(sname+'.copy_local',cmd)
+    '''
 
     system(cmd)
             

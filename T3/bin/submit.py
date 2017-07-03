@@ -18,7 +18,10 @@ if getenv('SUBMIT_CONFIG'):
   jm.setup_schedd(getenv('SUBMIT_CONFIG'))
 
 s = jm.Submission(frozen_cfgpath,workpath+'/submission.pkl')
-s.execute()
+if len(argv) > 1:
+  s.execute(int(argv[1]))
+else:
+  s.execute()
 s.save()
 
 statii = s.query_status()
